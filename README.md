@@ -99,10 +99,26 @@ docker compose up -d
 
 
 ## Что делать после установки
-### Изменить URL подписок 
-В "Корневой путь URL-адреса подписки" нужно вставить занчение из SUBSCRIPTIONS_PATH
-В "URI обратного прокси" нужно вставить занчение из https://DOMAIN:PANEL_PORT/SUBSCRIPTIONS_PATH/
+Не торгать порты, пути, URL-ы в настройках панели и подписок
 ### Настроить  vless
 Target - traefik:9443
 
 SNI - DOMAIN
+### Изменить настройки XRAY
+на ./configs/3x-ui_xray_best_config.json
+
+
+## Полезные ссылки
+
+- [Configure Xray with VLESS Reality](https://github.com/EmptyLibra/Configure-Xray-with-VLESS-Reality-on-VPS-server)
+- [XTLS документация](https://xtls.github.io/en/)
+- [3x-ui Configuration Wiki](https://github.com/MHSanaei/3x-ui/wiki/Configuration)
+- [Netplan Configurator (изменение ip сервера)](https://github.com/openlicence/netplan_configurator.sh)
+- [Hiddify App](https://github.com/hiddify/hiddify-app)
+- [Xray-core Discussions #3518](https://github.com/XTLS/Xray-core/discussions/3518)
+- [Xray VPS Setup in Docker](https://github.com/Akiyamov/xray-vps-setup/blob/main/install_in_docker.md)
+- [Установка 3x-ui + Nginx](https://habr.com/ru/articles/902580/)
+- [Статья по установке VPN](https://habr.com/ru/articles/799751/)
+- [Статья по настройке VPN](https://habr.com/ru/articles/770400/)
+- [Статья по Xray и Reality](https://habr.com/ru/articles/885276/)
+- [SelfSNI Wiki](https://wiki.yukikras.net/ru/selfsni)
