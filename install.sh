@@ -83,7 +83,8 @@ function create_env_file {
     # Заменяем оригинальный файл временным
     mv "$temp_file" "$env_file"
     echo "Файл .env успешно создан!"
-}create_env_file
+}
+create_env_file
 # Шаг 2: Установка 3xui
 docker compose up -d
 function update_panel_settings {
