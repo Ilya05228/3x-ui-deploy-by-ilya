@@ -48,7 +48,7 @@ git --version || sudo apt update && sudo apt install -y git
 
 ```bash
 cd /opt
-git clone git@github.com:Ilya05228/3x-ui-deploy-by-ilya.git 3x-ui
+git clone https://github.com/Ilya05228/3x-ui-deploy-by-ilya.git 3x-ui
 cd 3x-ui
 ```
 
@@ -93,3 +93,16 @@ docker compose down
 docker compose up -d
 ```
 **Теперь панель готова к использованию!**
+
+## Список задач которые нужно реализовать
+- Нам нужно оставить открытыми порты для SSH, 80(HTTP) и 443(HTTPS). Для этого нужно выполнить следующие команды:
+
+
+## Что делать после установки
+### Изменить URL подписок 
+В "Корневой путь URL-адреса подписки" нужно вставить занчение из SUBSCRIPTIONS_PATH
+В "URI обратного прокси" нужно вставить занчение из https://DOMAIN:PANEL_PORT/SUBSCRIPTIONS_PATH/
+### Настроить  vless
+Target - traefik:9443
+
+SNI - DOMAIN
