@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+# set -x
 set -e  
 if [ "$EUID" -ne 0 ]; then
   echo "Запустите скрипт под sudo."
