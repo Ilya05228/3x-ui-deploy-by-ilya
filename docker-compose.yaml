@@ -1,0 +1,99 @@
+services:
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "${WEBSITE_PORT}:${WEBSITE_PORT}"  
+      - "${PANEL_PORT}:${PANEL_PORT}" 
+      - "80:80"  
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.website.address=:${WEBSITE_PORT}
+      - --entrypoints.web.address=:80
+      - --entrypoints.panel.address=:${PANEL_PORT}
+      - --certificatesresolvers.myresolver.acme.httpchallenge=true
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+    networks:
+      - traefik
+
+  3x-ui:
+    image: ilya000/3x-ui:latest
+    container_name: 3x-ui
+    ports:
+      - "443:443"  
+    volumes:
+      - ./db/:/etc/x-ui/
+    environment:
+      XRAY_VMESS_AEAD_FORCED: "false"
+      XUI_ENABLE_FAIL2BAN: "true"
+    tty: true
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      # Общие middleware
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+
+      # Panel HTTP -> редирект на HTTPS
+      - "traefik.http.routers.3xui-panel-http.entrypoints=panel"
+      - "traefik.http.routers.3xui-panel-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.3xui-panel-http.service=3xui-panel"
+      - "traefik.http.routers.3xui-panel-http.middlewares=redirect-to-https"
+
+      # Panel HTTPS
+      - "traefik.http.routers.3xui-panel-https.entrypoints=panel"
+      - "traefik.http.routers.3xui-panel-https.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.3xui-panel-https.service=3xui-panel"
+      - "traefik.http.routers.3xui-panel-https.tls=true"
+      - "traefik.http.routers.3xui-panel-https.tls.certresolver=myresolver"
+      - "traefik.http.services.3xui-panel.loadbalancer.server.port=${PANEL_INTERNAL_PORT}"
+
+      # Subscriptions HTTP -> редирект на HTTPS
+      - "traefik.http.routers.3xui-subscriptions-http.entrypoints=panel"
+      - "traefik.http.routers.3xui-subscriptions-http.rule=Host(`${DOMAIN}`) && PathPrefix(`${SUBSCRIPTIONS_PATH}`)"
+      - "traefik.http.routers.3xui-subscriptions-http.service=3xui-subscriptions"
+      - "traefik.http.routers.3xui-subscriptions-http.middlewares=redirect-to-https"
+
+      # Subscriptions HTTPS
+      - "traefik.http.routers.3xui-subscriptions-https.entrypoints=panel"
+      - "traefik.http.routers.3xui-subscriptions-https.rule=Host(`${DOMAIN}`) && PathPrefix(`${SUBSCRIPTIONS_PATH}`)"
+      - "traefik.http.routers.3xui-subscriptions-https.service=3xui-subscriptions"
+      - "traefik.http.routers.3xui-subscriptions-https.tls=true"
+      - "traefik.http.routers.3xui-subscriptions-https.tls.certresolver=myresolver"
+      - "traefik.http.services.3xui-subscriptions.loadbalancer.server.port=${SUBSCRIPTIONS_INTERNAL_PORT}"
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.website-http.entrypoints=website"
+      - "traefik.http.routers.website-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.website-http.service=website"
+      - "traefik.http.routers.website-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.website-https.entrypoints=website"
+      - "traefik.http.routers.website-https.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.website-https.service=website"
+      - "traefik.http.routers.website-https.tls=true"
+      - "traefik.http.routers.website-https.tls.certresolver=myresolver"
+      - "traefik.http.services.website.loadbalancer.server.port=80"
+    networks:
+      - traefik
+networks:
+  traefik:
+    driver: bridge
