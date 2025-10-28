@@ -30,77 +30,82 @@ else
   sudo apt-get update
   sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 fi
+function create_env_file {
+    local env_example=".env.example"
+    local env_file=".env"
+        if [ -f "$env_file" ]; then
+        read -p "Файл .env уже существует. Хотите перезаписать его? (y/N): " overwrite
+        if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
+            echo "Продолжаем с существующим .env файлом."
+            return 0
+        fi
+    fi
+        if [ ! -f "$env_example" ]; then
+        echo "Ошибка: файл образца $env_example не найден"
+        echo "Создайте файл .env.sample с необходимыми переменными"
+        exit 1
+    fi
+    echo "Создание .env файла из образца..."
+    cp "$env_example" "$env_file"
+    
+    while IFS= read -r line; do
+        if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        var_name=$(echo "$line" | cut -d'=' -f1)
+        current_value=$(echo "$line" | cut -d'=' -f2-)
+        read -p "Хотите изменить значение для $var_name (текущее: $current_value)? (y/N): " change_var
+        if [[ "$change_var" =~ ^[Yy]$ ]]; then
+            read -p "Введите новое значение для $var_name: " new_value
+            new_value=$(echo "$new_value" | sed 's/[\/&]/\\&/g')
+            sed -i "s/^$var_name=.*/$var_name=$new_value/" "$env_file"
+        fi
+    done < "$env_file"
+    echo "Файл .env успешно создан!"
+}
+create_env_file
 # Шаг 2: Установка 3xui
 docker compose up -d
-docker compose up -d
-
 function update_panel_settings {
-    # Загружаем переменные из .env
     if [ ! -f ./.env ]; then
         echo "Ошибка: файл .env не найден"
         exit 1
     fi
     source ./.env
-    
-    # Проверяем обязательные переменные
-    if [ -z "$PANEL_INTERNAL_PORT" ]; then
+        if [ -z "$PANEL_INTERNAL_PORT" ]; then
         echo "Ошибка: переменная PANEL_INTERNAL_PORT не задана в .env"
         exit 1
     fi
-    
     if [ -z "$SUBSCRIPTIONS_PATH" ]; then
         echo "Ошибка: переменная SUBSCRIPTIONS_PATH не задана в .env"
         exit 1
     fi
-    
     if [ -z "$DOMAIN" ]; then
         echo "Ошибка: переменная DOMAIN не задана в .env"
         exit 1
     fi
-    
     if [ -z "$PANEL_PORT" ]; then
         echo "Ошибка: переменная PANEL_PORT не задана в .env"
         exit 1
     fi
-    
     if [ -z "$PANEL_PATH" ]; then
         echo "Ошибка: переменная PANEL_PATH не задана в .env"
         exit 1
     fi
-    
-    # Формируем subURI
     subURI="https://${DOMAIN}:${PANEL_PORT}${SUBSCRIPTIONS_PATH}"
-    
-    # Обновляем настройки в базе данных
     docker compose down
-    
-    # Устанавливаем sqlite3 если не установлен
     if ! command -v sqlite3 &> /dev/null; then
         apt update && apt install -y sqlite3
     fi
-    
-    # Обновляем настройки в базе данных
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$PANEL_INTERNAL_PORT')"
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subPath', '$SUBSCRIPTIONS_PATH')"
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subURI', '$subURI')"
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webBasePath', '$PANEL_PATH')"
-    
     docker compose up -d
-    
-    # Формируем итоговые адреса
     panel_url="https://${DOMAIN}:${PANEL_PORT}${PANEL_PATH}"
     subscriptions_url="https://${DOMAIN}:${PANEL_PORT}${SUBSCRIPTIONS_PATH}"
-    
-    echo "=== Настройки панели обновлены ==="
     echo "Адрес панели: $panel_url"
     echo "Адрес подписок: $subscriptions_url"
-    echo ""
-    echo "Параметры в базе данных:"
-    echo "webPort: $PANEL_INTERNAL_PORT"
-    echo "webBasePath: $PANEL_PATH"
-    echo "subPath: $SUBSCRIPTIONS_PATH"
-    echo "subURI: $subURI"
 }
-
 update_panel_settings
 echo "3x-ui успешно запущен!"
