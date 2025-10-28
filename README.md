@@ -14,6 +14,7 @@
 | `PANEL_PORT`                  | Внешний порт HTTPS для панели 3x-ui |
 | `WEBSITE_PORT`                | Внешний порт HTTPS для сайта |
 | `SUBSCRIPTIONS_PATH`          | Путь к подпискам в URL (`/subscriptions/`) |
+| `SUBSCRIPTIONS_INTERNAL_PORT` | Внутренний порт сервиса подписок в 3x-ui |
 | `PANEL_INTERNAL_PORT`         | Внутренний порт панели 3x-ui |
 
 !! по сути менять нужно только ACME_EMAIL и DOMAIN
