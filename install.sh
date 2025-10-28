@@ -33,37 +33,57 @@ fi
 function create_env_file {
     local env_example=".env.example"
     local env_file=".env"
-        if [ -f "$env_file" ]; then
+    
+    if [ -f "$env_file" ]; then
         read -p "Файл .env уже существует. Хотите перезаписать его? (y/N): " overwrite
         if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
             echo "Продолжаем с существующим .env файлом."
             return 0
         fi
     fi
-        if [ ! -f "$env_example" ]; then
+    
+    if [ ! -f "$env_example" ]; then
         echo "Ошибка: файл образца $env_example не найден"
-        echo "Создайте файл .env.sample с необходимыми переменными"
+        echo "Создайте файл .env.example с необходимыми переменными"
         exit 1
     fi
+    
     echo "Создание .env файла из образца..."
     cp "$env_example" "$env_file"
     
+    # Создаем временный файл для обработки
+    local temp_file=$(mktemp)
+    
     while IFS= read -r line; do
         if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+            # Копируем комментарии и пустые строки как есть
+            echo "$line" >> "$temp_file"
             continue
         fi
+        
         var_name=$(echo "$line" | cut -d'=' -f1)
         current_value=$(echo "$line" | cut -d'=' -f2-)
-        read -p "Хотите изменить значение для $var_name (текущее: $current_value)? (y/N): " change_var
+        
+        # Используем /dev/tty для прямого ввода от пользователя
+        read -p "Хотите изменить значение для $var_name (текущее: $current_value)? (y/N): " change_var </dev/tty
+        
         if [[ "$change_var" =~ ^[Yy]$ ]]; then
-            read -p "Введите новое значение для $var_name: " new_value
-            new_value=$(echo "$new_value" | sed 's/[\/&]/\\&/g')
-            sed -i "s/^$var_name=.*/$var_name=$new_value/" "$env_file"
+            read -p "Введите новое значение для $var_name: " new_value </dev/tty
+            # Если новое значение не пустое, используем его, иначе оставляем старое
+            if [ -n "$new_value" ]; then
+                echo "$var_name=$new_value" >> "$temp_file"
+            else
+                echo "$line" >> "$temp_file"
+            fi
+        else
+            echo "$line" >> "$temp_file"
         fi
     done < "$env_file"
+    
+    # Заменяем оригинальный файл временным
+    mv "$temp_file" "$env_file"
     echo "Файл .env успешно создан!"
-}
-create_env_file
+}create_env_file
 # Шаг 2: Установка 3xui
 docker compose up -d
 function update_panel_settings {
