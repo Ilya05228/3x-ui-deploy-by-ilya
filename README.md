@@ -13,6 +13,7 @@
 | `DOMAIN`                      | Основной домен для панели и сайта |
 | `PANEL_PORT`                  | Внешний порт HTTPS для панели 3x-ui |
 | `WEBSITE_PORT`                | Внешний порт HTTPS для сайта |
+| `PANEL_PATH`                  | Путь к 3x-ui в URL (`/subscriptions/`) |
 | `SUBSCRIPTIONS_PATH`          | Путь к подпискам в URL (`/subscriptions/`) |
 | `SUBSCRIPTIONS_INTERNAL_PORT` | Внутренний порт сервиса подписок в 3x-ui |
 | `PANEL_INTERNAL_PORT`         | Внутренний порт панели 3x-ui |

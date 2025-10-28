@@ -32,6 +32,8 @@ else
 fi
 # Шаг 2: Установка 3xui
 docker compose up -d
+docker compose up -d
+
 function update_panel_settings {
     # Загружаем переменные из .env
     if [ ! -f ./.env ]; then
@@ -61,6 +63,11 @@ function update_panel_settings {
         exit 1
     fi
     
+    if [ -z "$PANEL_PATH" ]; then
+        echo "Ошибка: переменная PANEL_PATH не задана в .env"
+        exit 1
+    fi
+    
     # Формируем subURI
     subURI="https://${DOMAIN}:${PANEL_PORT}${SUBSCRIPTIONS_PATH}"
     
@@ -76,11 +83,21 @@ function update_panel_settings {
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$PANEL_INTERNAL_PORT')"
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subPath', '$SUBSCRIPTIONS_PATH')"
     sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subURI', '$subURI')"
+    sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webBasePath', '$PANEL_PATH')"
     
     docker compose up -d
     
-    echo "Настройки панели обновлены:"
+    # Формируем итоговые адреса
+    panel_url="https://${DOMAIN}:${PANEL_PORT}${PANEL_PATH}"
+    subscriptions_url="https://${DOMAIN}:${PANEL_PORT}${SUBSCRIPTIONS_PATH}"
+    
+    echo "=== Настройки панели обновлены ==="
+    echo "Адрес панели: $panel_url"
+    echo "Адрес подписок: $subscriptions_url"
+    echo ""
+    echo "Параметры в базе данных:"
     echo "webPort: $PANEL_INTERNAL_PORT"
+    echo "webBasePath: $PANEL_PATH"
     echo "subPath: $SUBSCRIPTIONS_PATH"
     echo "subURI: $subURI"
 }
