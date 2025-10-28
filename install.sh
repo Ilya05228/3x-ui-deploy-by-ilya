@@ -32,16 +32,58 @@ else
 fi
 # Шаг 2: Установка 3xui
 docker compose up -d
-function check_and_change_panel_port {
-    read -p "Хотите изменить порт панели? (y/n): " change_port
-    if [[ $change_port =~ ^[YyДд]$ ]]; then
-        docker compose down
-        apt install -y sqlite3
-        read -p "Введите новый порт: " new_port
-        sed -i "s/PANEL_PORT=[0-9]*/PANEL_PORT=$new_port/" ./.env
-        sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$new_port')"
-        docker compose up -d
+function update_panel_settings {
+    # Загружаем переменные из .env
+    if [ ! -f ./.env ]; then
+        echo "Ошибка: файл .env не найден"
+        exit 1
     fi
+    source ./.env
+    
+    # Проверяем обязательные переменные
+    if [ -z "$PANEL_INTERNAL_PORT" ]; then
+        echo "Ошибка: переменная PANEL_INTERNAL_PORT не задана в .env"
+        exit 1
+    fi
+    
+    if [ -z "$SUBSCRIPTIONS_PATH" ]; then
+        echo "Ошибка: переменная SUBSCRIPTIONS_PATH не задана в .env"
+        exit 1
+    fi
+    
+    if [ -z "$DOMAIN" ]; then
+        echo "Ошибка: переменная DOMAIN не задана в .env"
+        exit 1
+    fi
+    
+    if [ -z "$PANEL_PORT" ]; then
+        echo "Ошибка: переменная PANEL_PORT не задана в .env"
+        exit 1
+    fi
+    
+    # Формируем subURI
+    subURI="https://${DOMAIN}:${PANEL_PORT}${SUBSCRIPTIONS_PATH}"
+    
+    # Обновляем настройки в базе данных
+    docker compose down
+    
+    # Устанавливаем sqlite3 если не установлен
+    if ! command -v sqlite3 &> /dev/null; then
+        apt update && apt install -y sqlite3
+    fi
+    
+    # Обновляем настройки в базе данных
+    sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$PANEL_INTERNAL_PORT')"
+    sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subPath', '$SUBSCRIPTIONS_PATH')"
+    sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subURI', '$subURI')"
+    
+    docker compose up -d
+    
+    echo "Настройки панели обновлены:"
+    echo "webPort: $PANEL_INTERNAL_PORT"
+    echo "subPath: $SUBSCRIPTIONS_PATH"
+    echo "subURI: $subURI"
 }
-check_and_change_panel_port
+
+update_panel_settings
 echo "3x-ui успешно запущен!"
