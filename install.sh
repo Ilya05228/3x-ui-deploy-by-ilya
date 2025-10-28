@@ -32,47 +32,16 @@ else
 fi
 # Шаг 2: Установка 3xui
 docker compose up -d
-function check_and_change_ports_and_paths {
-    # Читаем значения из .env файла
-    if [ -f ./.env ]; then
-        source ./.env
-        changes_made=false
-        # Меняем порт панели если задан PANEL_INTERNAL_PORT
-        if [ ! -z "$PANEL_INTERNAL_PORT" ]; then
-            echo "Автоматическое изменение порта панели на $PANEL_INTERNAL_PORT"
-            docker compose down
-            apt install -y sqlite3
-            # Обновляем PANEL_PORT в .env файле
-            sed -i "s/PANEL_PORT=[0-9]*/PANEL_PORT=$PANEL_INTERNAL_PORT/" ./.env
-            # Обновляем порт в базе данных
-            sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$PANEL_INTERNAL_PORT')"
-            changes_made=true
-            echo "Порт панели успешно изменен на $PANEL_INTERNAL_PORT"
-        else
-            echo "PANEL_INTERNAL_PORT не задан, порт панели не изменен"
-        fi
-        # Меняем путь подписок если задан SUBSCRIPTIONS_PATH
-        if [ ! -z "$SUBSCRIPTIONS_PATH" ]; then
-            echo "Автоматическое изменение пути подписок на $SUBSCRIPTIONS_PATH"
-            # Обновляем subPath в базе данных
-            sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('subPath', '$SUBSCRIPTIONS_PATH')"
-            changes_made=true
-            echo "Путь подписок успешно изменен на $SUBSCRIPTIONS_PATH"
-        else
-            echo "SUBSCRIPTIONS_PATH не задан, путь подписок не изменен"
-        fi
-        # Перезапускаем контейнеры только если были изменения
-        if [ "$changes_made" = true ]; then
-            docker compose up -d
-            echo "Все изменения применены, контейнеры перезапущены"
-        else
-            echo "Изменений не требуется"
-        fi
-        
-    else
-        echo "Ошибка: .env файл не найден"
+function check_and_change_panel_port {
+    read -p "Хотите изменить порт панели? (y/n): " change_port
+    if [[ $change_port =~ ^[YyДд]$ ]]; then
+        docker compose down
+        apt install -y sqlite3
+        read -p "Введите новый порт: " new_port
+        sed -i "s/PANEL_PORT=[0-9]*/PANEL_PORT=$new_port/" ./.env
+        sqlite3 ./db/x-ui.db "INSERT OR REPLACE INTO settings (key, value) VALUES ('webPort', '$new_port')"
+        docker compose up -d
     fi
 }
-
-check_and_change_ports_and_paths
+check_and_change_panel_port
 echo "3x-ui успешно запущен!"
