@@ -63,6 +63,7 @@ cd 3x-ui
 ```bash
 nano .env
 ```
+Вставьте из шаблона .env.example в файл .env
 
 Внесите необходимые изменения и сохраните (Ctrl+O → Enter → Ctrl+X).
 
