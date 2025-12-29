@@ -42,7 +42,7 @@
         "sockopt": {
           "dialerProxy": "",
           "tcpNoDelay": true,
-          "tcpFastOpen": false,
+          "tcpFastOpen": true,
           "tcpKeepAliveInterval": 30,
           "tcpKeepAliveIdle": 300,
           "tcpMptcp": false,
@@ -74,7 +74,7 @@
     }
   },
   "routing": {
-    "domainStrategy": "AsIs",
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "type": "field",
@@ -86,16 +86,15 @@
       {
         "type": "field",
         "outboundTag": "blocked",
-        "ip": [
-          "geoip:private",
-          "geoip:ru"
+        "protocol": [
+          "bittorrent"
         ]
       },
       {
         "type": "field",
         "outboundTag": "blocked",
-        "protocol": [
-          "bittorrent"
+        "ip": [
+          "geoip:private"
         ]
       }
     ]
